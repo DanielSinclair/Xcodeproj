@@ -832,14 +832,17 @@ module Xcodeproj
     end
 
     # Recreates the user schemes of the project from scratch (removes the
-    # folder) and optionally hides them.
+    # folder) and optionally hides or shares them.
     #
     # @param  [Bool] visible
     #         Whether the schemes should be visible or hidden.
     #
+    # @param  [Bool] shared
+    #         Whether the schemes should be shared or not. 
+    #
     # @return [void]
     #
-    def recreate_user_schemes(visible = true)
+    def recreate_user_schemes(visible = true, shared = false)
       schemes_dir = XCScheme.user_data_dir(path)
       FileUtils.rm_rf(schemes_dir)
       FileUtils.mkdir_p(schemes_dir)
@@ -856,9 +859,10 @@ module Xcodeproj
         scheme.configure_with_targets(target, test_target, :launch_target => launch_target)
 
         yield scheme, target if block_given?
-        scheme.save_as(path, target.name, false)
-        xcschememanagement['SchemeUserState']["#{target.name}.xcscheme"] = {}
-        xcschememanagement['SchemeUserState']["#{target.name}.xcscheme"]['isShown'] = visible
+        scheme.save_as(path, target.name, shared)
+        xcscheme_key = "#{target.name}.xcscheme#{shared ? "_^#shared#^_" : ""}"
+        xcschememanagement['SchemeUserState'][xcscheme_key] = {}
+        xcschememanagement['SchemeUserState'][xcscheme_key]['isShown'] = visible
       end
 
       xcschememanagement_path = schemes_dir + 'xcschememanagement.plist'
